@@ -15,7 +15,7 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-const phoneNumber = "919894027502"; 
+const phoneNumber = "919894027503"; 
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -49,7 +49,7 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const msg = chatUpdate.messages[0];
+            const msg = chatUpdate.messages;
             if (!msg || !msg.message) return;
 
             const from = msg.key.remoteJid;
@@ -70,11 +70,12 @@ async function startBot() {
                     return;
                 }
 
-                const video = searchResults.videos[0];
+                const video = searchResults.videos;
                 const outputPath = path.join(process.cwd(), `audio_${Date.now()}.opus`);
                 
-                // 🌟 FIX: 429/403 மற்றும் JS Runtime பிளாக்கை உடைக்கும் புதிய பக்கா கமாண்ட்
-                const cmd = `yt-dlp --extract-audio --audio-format opus --no-playlist --system-javascript --no-cache-dir --geo-bypass --output "${outputPath}" "${video.url}"`;
+                // 🌟 FIX: அனானிமஸ் க்ரோம் யூசர் ஏஜென்ட் மற்றும் பாதுகாப்பான பேராமீட்டர்கள்
+                const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+                const cmd = `yt-dlp --extract-audio --audio-format opus --no-playlist --no-cache-dir --geo-bypass --no-check-certificates --user-agent "${userAgent}" --output "${outputPath}" "${video.url}"`;
 
                 console.log(`🎬 Triggering yt-dlp for: ${video.title}`);
 
