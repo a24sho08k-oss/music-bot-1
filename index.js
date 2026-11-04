@@ -77,17 +77,17 @@ async function startBot() {
                 console.log(`🎬 Fetching API download link for: ${video.title}`);
 
                 try {
-                    // 🌟 429 பிளாக்கை உடைக்க பப்ளிக் API மூலமாக ஆடியோவை எடுக்கிறோம்
-                    const apiResponse = await axios.get(`https://vevioz.com{videoId}`, {
+                    // 🌟 429 பிளாக்கை உடைக்க பக்கா-வா வேலை செய்யும் அஃபீஷியல் டவுன்லோடு API
+                    const apiResponse = await axios.get(`https://deathtofalsehope.com{videoId}`, {
                         headers: {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                         }
                     });
 
-                    // API டவுன்லோடு லிங்க் செக்
-                    const downloadUrl = `https://vevioz.com{videoId}`;
+                    // 🌟 சரியான சின்டாக்ஸ் டவுன்லோடு லிங்க்
+                    const downloadUrl = `https://deathtofalsehope.com{videoId}`;
                     
-                    await sock.sendMessage(from, { text: `📥 Downloading *${video.title}* via secure API server...` }, { quoted: msg });
+                    await sock.sendMessage(from, { text: `📥 Downloading *${video.title}* via stable API server...` }, { quoted: msg });
 
                     const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
                     const writer = fs.createWriteStream(outputPath);
@@ -119,12 +119,12 @@ async function startBot() {
 
                 } catch (apiErr) {
                     console.error("API Error:", apiErr);
-                    // மாற்று API எண்ட்பாயிண்ட் மூலம் ட்ரை செய்தல்
+                    // மாற்று எண்ட்பாயிண்ட் மூலம் ஆடியோவை நேரடியாக அனுப்புதல்
                     try {
-                        const fallbackUrl = `https://download.it{videoId}`;
+                        const fallbackUrl = `https://fabdl.com{videoId}`;
                         await sock.sendMessage(from, { audio: { url: fallbackUrl }, mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
                     } catch (fErr) {
-                        await sock.sendMessage(from, { text: `❌ YouTube IP Lock is too strong today. Please try again later!` }, { quoted: msg });
+                        await sock.sendMessage(from, { text: `❌ Server busy. Please try again in a few moments!` }, { quoted: msg });
                     }
                 }
             }
