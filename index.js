@@ -15,8 +15,7 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-// 🌟 Unga WA Phone number kudunga
-const phoneNumber = "919894027502";
+const phoneNumber = "919894027502"; 
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -25,7 +24,6 @@ async function startBot() {
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        // 🌟 FIX: 428 Precondition Required error-ai fix panna intha secure stable connection model
         browser: ["Mac OS", "Chrome", "120.0.0.0"],
         syncFullHistory: false
     });
@@ -75,14 +73,15 @@ async function startBot() {
                 const video = searchResults.videos[0];
                 const outputPath = path.join(process.cwd(), `audio_${Date.now()}.opus`);
                 
-                const cmd = `yt-dlp --extract-audio --audio-format opus --no-playlist --output "${outputPath}" "${video.url}"`;
+                // 🌟 FIX: 429/403 மற்றும் JS Runtime பிளாக்கை உடைக்கும் புதிய பக்கா கமாண்ட்
+                const cmd = `yt-dlp --extract-audio --audio-format opus --no-playlist --system-javascript --no-cache-dir --geo-bypass --output "${outputPath}" "${video.url}"`;
 
                 console.log(`🎬 Triggering yt-dlp for: ${video.title}`);
 
                 exec(cmd, async (error, stdout, stderr) => {
                     if (error) {
                         console.error("❌ Download Fail Error:", error);
-                        await sock.sendMessage(from, { text: `❌ Download Failed!\n\n*Error:* ${error.message}` }, { quoted: msg });
+                        await sock.sendMessage(from, { text: `❌ Download Failed!\n\n*Error:* ${error.message}\n\n*Stderr:* ${stderr}` }, { quoted: msg });
                         return;
                     }
 
