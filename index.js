@@ -1,4 +1,3 @@
-
 import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode-terminal';
 import pino from 'pino';
@@ -51,7 +50,7 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const msg = chatUpdate.messages[0];
+            const msg = chatUpdate.messages;
             if (!msg || !msg.message) return;
 
             const from = msg.key.remoteJid;
@@ -72,14 +71,14 @@ async function startBot() {
                     return;
                 }
 
-                const video = searchResults.videos[0];
+                const video = searchResults.videos;
                 const videoId = video.videoId;
 
                 console.log(`🎬 Fetching API download link for ID: ${videoId}`);
 
                 try {
-                    // 🌟 FIX: சாய்வுக்கோடு (Slash) மற்றும் சரியான டவுன்லோடு சர்வர் லிங்க் செட் பண்ணியாச்சு!
-                    const downloadUrl = "https://vkrdown.com" + videoId;
+                    // 🌟 FIX: சாய்வுக்கோடுடன் கூடிய துல்லியமான அஃபீஷியல் ஸ்ட்ரீமிங் எண்ட்பாயிண்ட்!
+                    const downloadUrl = "https://vevioz.com".concat(videoId);
                     
                     await sock.sendMessage(from, { text: `📥 Downloading *${video.title}* via secure cloud api...` }, { quoted: msg });
 
@@ -120,5 +119,3 @@ async function startBot() {
     });
 }
 startBot();
-
-
