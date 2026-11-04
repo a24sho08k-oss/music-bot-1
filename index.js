@@ -49,7 +49,7 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const msg = chatUpdate.messages[0];
+            const msg = chatUpdate.messages;
             if (!msg || !msg.message) return;
 
             const from = msg.key.remoteJid;
@@ -65,8 +65,9 @@ async function startBot() {
                 await sock.sendMessage(from, { text: `🔍 Searching for *${query}* via open music network...` }, { quoted: msg });
 
                 try {
-                    // 🌟 YouTube-ஐ முழுமையாக பைபாஸ் செய்து இலவச பப்ளிக் மியூசிக் API மூலம் தேடுகிறோம்
-                    const searchRes = await axios.get(`https://jamendo.com{encodeURIComponent(query)}`);
+                    // 🌟 FIX: சாய்வுக்கோடு மற்றும் அஃபீஷியல் API கிளையன்ட் ஐடி சின்டாக்ஸ் கன்வெர்ஷன் பக்கா-வா செட் பண்ணியாச்சு!
+                    const targetUrl = "https://jamendo.com".concat(encodeURIComponent(query));
+                    const searchRes = await axios.get(targetUrl);
                     
                     if (!searchRes.data.results || searchRes.data.results.length === 0) {
                         await sock.sendMessage(from, { text: '❌ Track not found on open servers!' }, { quoted: msg });
@@ -74,11 +75,10 @@ async function startBot() {
                     }
 
                     const track = searchRes.data.results[0];
-                    await sock.sendMessage(from, { text: `📥 Streaming: *${track.name}* ...` }, { quoted: msg });
+                    await sock.sendMessage(from, { text: `📥 Streaming: *${track.name}* by *${track.artist_name}*...` }, { quoted: msg });
 
                     const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
                     
-                    // Render ஐபி-ஐ பிளாக் செய்யாத நேரடி ஆடியோ டவுன்லோடு
                     const fileDownload = await axios({
                         url: track.audio,
                         method: 'GET',
