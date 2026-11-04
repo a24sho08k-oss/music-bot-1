@@ -3,12 +3,12 @@ import qrcode from 'qrcode-terminal';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
-import axios from 'axios';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 const ytSearch = require('yt-search');
 const express = require('express');
+const ytdl = require('@distube/ytdl-core');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -50,7 +50,7 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const msg = chatUpdate.messages;
+            const msg = chatUpdate.messages[0];
             if (!msg || !msg.message) return;
 
             const from = msg.key.remoteJid;
@@ -71,49 +71,42 @@ async function startBot() {
                     return;
                 }
 
-                const video = searchResults.videos;
-                const videoId = video.videoId;
+                const video = searchResults.videos[0];
+                const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
 
-                console.log(`🎬 Fetching API download link for ID: ${videoId}`);
+                console.log(`🎬 Downloading via native stream: ${video.title}`);
+                await sock.sendMessage(from, { text: `📥 Downloading *${video.title}* ...` }, { quoted: msg });
 
-                try {
-                    // 🌟 FIX: சாய்வுக்கோடுடன் கூடிய துல்லியமான அஃபீஷியல் ஸ்ட்ரீமிங் எண்ட்பாயிண்ட்!
-                    const downloadUrl = "https://vevioz.com".concat(videoId);
-                    
-                    await sock.sendMessage(from, { text: `📥 Downloading *${video.title}* via secure cloud api...` }, { quoted: msg });
-
-                    const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
-                    const writer = fs.createWriteStream(outputPath);
-
-                    const fileDownload = await axios({
-                        url: downloadUrl,
-                        method: 'GET',
-                        responseType: 'stream'
-                    });
-
-                    fileDownload.data.pipe(writer);
-
-                    writer.on('finish', async () => {
-                        if (fs.existsSync(outputPath)) {
-                            await sock.sendMessage(from, {
-                                audio: { url: outputPath },
-                                mimetype: 'audio/mp4',
-                                ptt: true
-                            }, { quoted: msg });
-                            fs.unlinkSync(outputPath);
-                            console.log("✅ Audio voice note sent successfully!");
+                // 🌟 FIX: எந்த வெப்சைட்டும் இல்லாம நேரடியா ஆடியோ ஸ்ட்ரீம் டவுன்லோட் பண்றோம்
+                const stream = ytdl(video.url, {
+                    filter: 'audioonly',
+                    quality: 'highestaudio',
+                    requestOptions: {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
                         }
-                    });
+                    }
+                });
 
-                    writer.on('error', async (err) => {
-                        console.error("Writer error:", err);
-                        await sock.sendMessage(from, { text: `❌ File Save Error: ${err.message}` }, { quoted: msg });
-                    });
+                const fileStream = fs.createWriteStream(outputPath);
+                stream.pipe(fileStream);
 
-                } catch (apiErr) {
-                    console.error("API Error:", apiErr);
-                    await sock.sendMessage(from, { text: `❌ API Request Failed! Please try again.` }, { quoted: msg });
-                }
+                fileStream.on('finish', async () => {
+                    if (fs.existsSync(outputPath)) {
+                        await sock.sendMessage(from, {
+                            audio: { url: outputPath },
+                            mimetype: 'audio/mp4',
+                            ptt: true
+                        }, { quoted: msg });
+                        fs.unlinkSync(outputPath);
+                        console.log("✅ Sent successfully!");
+                    }
+                });
+
+                stream.on('error', async (err) => {
+                    console.error("Stream error:", err);
+                    await sock.sendMessage(from, { text: `❌ Download Glitch: ${err.message}` }, { quoted: msg });
+                });
             }
         } catch (e) { console.log(e); }
     });
