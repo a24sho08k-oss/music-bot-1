@@ -15,8 +15,8 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-// 🌟 உங்க வாட்ஸ்அப் போன் நம்பரை இங்கே குடுங்க (நாட்டுக் குறியீடுடன் - எ.கா: 919876543210)
-const phoneNumber = "919894027502";
+// 🌟 Unga WA Phone number kudunga
+const phoneNumber = "919894027502"; 
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -49,6 +49,7 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
+            // 🌟 FIX: Array-la irunthu first message element-ai proper-ah extract panrom
             const msg = chatUpdate.messages[0];
             if (!msg || !msg.message) return;
 
@@ -66,7 +67,7 @@ async function startBot() {
 
                 const searchResults = await ytSearch(query + " official audio");
                 if (!searchResults.videos.length) {
-                    await sock.sendMessage(from, { text: '❌ Not found!' });
+                    await sock.sendMessage(from, { text: '❌ Not found!' }, { quoted: msg });
                     return;
                 }
 
@@ -75,9 +76,11 @@ async function startBot() {
                 
                 const cmd = `yt-dlp --extract-audio --audio-format opus --no-playlist --output "${outputPath}" "${video.url}"`;
 
+                console.log(`🎬 Downloading audio for: ${video.title}`);
+
                 exec(cmd, async (error) => {
                     if (error) {
-                        console.error(error);
+                        console.error("Download fail error:", error);
                         return;
                     }
 
@@ -88,6 +91,7 @@ async function startBot() {
                             ptt: true
                         }, { quoted: msg });
                         fs.unlinkSync(outputPath);
+                        console.log("✅ Audio voice note sent!");
                     }
                 });
             }
