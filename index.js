@@ -3,19 +3,19 @@ import qrcode from 'qrcode-terminal';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 const ytSearch = require('yt-search');
 const express = require('express');
-const ytdl = require('@distube/ytdl-core');
 
 const app = express();
 const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-// 🌟 Unga WA Phone number kudunga
+// 🌟 உங்க வாட்ஸ்அப் போன் நம்பரை இங்கே குடுங்க
 const phoneNumber = "919894027502"; 
 
 async function startBot() {
@@ -72,35 +72,61 @@ async function startBot() {
                 }
 
                 const video = searchResults.videos[0];
-                const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
+                const videoId = video.videoId;
 
-                console.log(`🎬 Node streaming audio for: ${video.title}`);
+                console.log(`🎬 Fetching API download link for: ${video.title}`);
 
-                // 🌟 FIX: No python, no yt-dlp binary. Pure Node stream handling!
-                const stream = ytdl(video.url, {
-                    filter: 'audioonly',
-                    quality: 'highestaudio'
-                });
+                try {
+                    // 🌟 429 பிளாக்கை உடைக்க பப்ளிக் API மூலமாக ஆடியோவை எடுக்கிறோம்
+                    const apiResponse = await axios.get(`https://vevioz.com{videoId}`, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
+                    });
 
-                const fileStream = fs.createWriteStream(outputPath);
-                stream.pipe(fileStream);
+                    // API டவுன்லோடு லிங்க் செக்
+                    const downloadUrl = `https://vevioz.com{videoId}`;
+                    
+                    await sock.sendMessage(from, { text: `📥 Downloading *${video.title}* via secure API server...` }, { quoted: msg });
 
-                fileStream.on('finish', async () => {
-                    if (fs.existsSync(outputPath)) {
-                        await sock.sendMessage(from, {
-                            audio: { url: outputPath },
-                            mimetype: 'audio/mp4',
-                            ptt: true
-                        }, { quoted: msg });
-                        fs.unlinkSync(outputPath);
-                        console.log("✅ Audio voice note sent using ytdl-core!");
+                    const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
+                    const writer = fs.createWriteStream(outputPath);
+
+                    const fileDownload = await axios({
+                        url: downloadUrl,
+                        method: 'GET',
+                        responseType: 'stream'
+                    });
+
+                    fileDownload.data.pipe(writer);
+
+                    writer.on('finish', async () => {
+                        if (fs.existsSync(outputPath)) {
+                            await sock.sendMessage(from, {
+                                audio: { url: outputPath },
+                                mimetype: 'audio/mp4',
+                                ptt: true
+                            }, { quoted: msg });
+                            fs.unlinkSync(outputPath);
+                            console.log("✅ Audio voice note sent successfully!");
+                        }
+                    });
+
+                    writer.on('error', async (err) => {
+                        console.error("Writer error:", err);
+                        await sock.sendMessage(from, { text: `❌ File Save Error: ${err.message}` }, { quoted: msg });
+                    });
+
+                } catch (apiErr) {
+                    console.error("API Error:", apiErr);
+                    // மாற்று API எண்ட்பாயிண்ட் மூலம் ட்ரை செய்தல்
+                    try {
+                        const fallbackUrl = `https://download.it{videoId}`;
+                        await sock.sendMessage(from, { audio: { url: fallbackUrl }, mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
+                    } catch (fErr) {
+                        await sock.sendMessage(from, { text: `❌ YouTube IP Lock is too strong today. Please try again later!` }, { quoted: msg });
                     }
-                });
-
-                stream.on('error', async (err) => {
-                    console.error("Stream error:", err);
-                    await sock.sendMessage(from, { text: `❌ Stream Fetch Error: ${err.message}` }, { quoted: msg });
-                });
+                }
             }
         } catch (e) { console.log(e); }
     });
