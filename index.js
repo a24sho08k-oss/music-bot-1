@@ -3,11 +3,11 @@ import qrcode from 'qrcode-terminal';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const SoundCloud = require('soundcloud-scraper');
-const client = new SoundCloud.Client();
+const ytSearch = require('yt-search');
 const express = require('express');
 
 const app = express();
@@ -15,7 +15,6 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-// 🌟 Unga WA Phone number
 const phoneNumber = "919894027502"; 
 
 async function startBot() {
@@ -42,7 +41,7 @@ async function startBot() {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) startBot();
         } else if (connection === 'open') {
-            console.log('\n🎵 SoundCloud Audio Bot Connected Successfully!');
+            console.log('\n🎵 Secure API Audio Bot is Live!');
         }
     });
 
@@ -63,41 +62,48 @@ async function startBot() {
                     return;
                 }
 
-                await sock.sendMessage(from, { text: `🔍 Searching on SoundCloud for *${query}*...` }, { quoted: msg });
+                await sock.sendMessage(from, { text: `🔍 Searching for *${query}* via open music network...` }, { quoted: msg });
 
-                // 🌟 YouTube-ai bypass panni SoundCloud platform search panrom
-                const searchResults = await client.search(query, 'track');
-                if (!searchResults || searchResults.length === 0) {
-                    await sock.sendMessage(from, { text: '❌ Audio track not found on cloud networks!' }, { quoted: msg });
-                    return;
-                }
-
-                const track = searchResults[0];
-                await sock.sendMessage(from, { text: `📥 Streaming audio: *${track.title}* via SoundCloud server...` }, { quoted: msg });
-
-                const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
-                
-                const stream = await track.downloadProgressive();
-                const fileStream = fs.createWriteStream(outputPath);
-                
-                stream.pipe(fileStream);
-
-                fileStream.on('finish', async () => {
-                    if (fs.existsSync(outputPath)) {
-                        await sock.sendMessage(from, {
-                            audio: { url: outputPath },
-                            mimetype: 'audio/mp4',
-                            ptt: true
-                        }, { quoted: msg });
-                        fs.unlinkSync(outputPath);
-                        console.log("✅ SoundCloud track pushed to WA chat!");
+                try {
+                    // 🌟 YouTube-ஐ முழுமையாக பைபாஸ் செய்து இலவச பப்ளிக் மியூசிக் API மூலம் தேடுகிறோம்
+                    const searchRes = await axios.get(`https://jamendo.com{encodeURIComponent(query)}`);
+                    
+                    if (!searchRes.data.results || searchRes.data.results.length === 0) {
+                        await sock.sendMessage(from, { text: '❌ Track not found on open servers!' }, { quoted: msg });
+                        return;
                     }
-                });
 
-                stream.on('error', async (err) => {
-                    console.error("Cloud stream error:", err);
-                    await sock.sendMessage(from, { text: `❌ Stream error: ${err.message}` }, { quoted: msg });
-                });
+                    const track = searchRes.data.results[0];
+                    await sock.sendMessage(from, { text: `📥 Streaming: *${track.name}* ...` }, { quoted: msg });
+
+                    const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
+                    
+                    // Render ஐபி-ஐ பிளாக் செய்யாத நேரடி ஆடியோ டவுன்லோடு
+                    const fileDownload = await axios({
+                        url: track.audio,
+                        method: 'GET',
+                        responseType: 'stream'
+                    });
+
+                    const writer = fs.createWriteStream(outputPath);
+                    fileDownload.data.pipe(writer);
+
+                    writer.on('finish', async () => {
+                        if (fs.existsSync(outputPath)) {
+                            await sock.sendMessage(from, {
+                                audio: { url: outputPath },
+                                mimetype: 'audio/mp4',
+                                ptt: true
+                            }, { quoted: msg });
+                            fs.unlinkSync(outputPath);
+                            console.log("✅ Sent successfully via Jamendo API!");
+                        }
+                    });
+
+                } catch (err) {
+                    console.error(err);
+                    await sock.sendMessage(from, { text: `❌ Network busy. Please try again!` }, { quoted: msg });
+                }
             }
         } catch (e) { console.log(e); }
     });
