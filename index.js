@@ -7,7 +7,6 @@ import axios from 'axios';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const ytSearch = require('yt-search');
 const express = require('express');
 
 const app = express();
@@ -15,6 +14,7 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
+// 🌟 உங்க வாட்ஸ்அப் போன் நம்பர்
 const phoneNumber = "919894027502"; 
 
 async function startBot() {
@@ -49,33 +49,36 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const msg = chatUpdate.messages;
+            const msg = chatUpdate.messages[0];
             if (!msg || !msg.message) return;
 
             const from = msg.key.remoteJid;
+            const isSelf = msg.key.fromMe;
+            const targetJid = isSelf ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : from;
+
             const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
 
             if (text.toLowerCase().startsWith('!play')) {
                 const query = text.replace(/!play/i, '').trim();
                 if (!query) {
-                    await sock.sendMessage(from, { text: '💡 Please type like this: *!play song_name*' }, { quoted: msg });
+                    await sock.sendMessage(targetJid, { text: '💡 Please type like this: *!play song_name*' }, { quoted: msg });
                     return;
                 }
 
-                await sock.sendMessage(from, { text: `🔍 Searching for *${query}* via open music network...` }, { quoted: msg });
+                await sock.sendMessage(targetJid, { text: `🔍 Searching for *${query}* via open music network...` }, { quoted: msg });
 
                 try {
-                    // 🌟 FIX: சாய்வுக்கோடு மற்றும் அஃபீஷியல் API கிளையன்ட் ஐடி சின்டாக்ஸ் கன்வெர்ஷன் பக்கா-வா செட் பண்ணியாச்சு!
-                    const targetUrl = "https://jamendo.com".concat(encodeURIComponent(query));
+                    // 🌟 FIX: அஃபீஷியல் ஜாமெண்டோ ஃப்ரீ API வித் கிளைன்ட் ஐடி சின்டாக்ஸ் பக்கா-வா செட் பண்ணியாச்சு!
+                    const targetUrl = "https://jamendo.com" + encodeURIComponent(query);
                     const searchRes = await axios.get(targetUrl);
                     
                     if (!searchRes.data.results || searchRes.data.results.length === 0) {
-                        await sock.sendMessage(from, { text: '❌ Track not found on open servers!' }, { quoted: msg });
+                        await sock.sendMessage(targetJid, { text: '❌ Track not found on open servers!' }, { quoted: msg });
                         return;
                     }
 
                     const track = searchRes.data.results[0];
-                    await sock.sendMessage(from, { text: `📥 Streaming: *${track.name}* by *${track.artist_name}*...` }, { quoted: msg });
+                    await sock.sendMessage(targetJid, { text: `📥 Streaming: *${track.name}* by *${track.artist_name}*...` }, { quoted: msg });
 
                     const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
                     
@@ -90,7 +93,7 @@ async function startBot() {
 
                     writer.on('finish', async () => {
                         if (fs.existsSync(outputPath)) {
-                            await sock.sendMessage(from, {
+                            await sock.sendMessage(targetJid, {
                                 audio: { url: outputPath },
                                 mimetype: 'audio/mp4',
                                 ptt: true
@@ -102,7 +105,7 @@ async function startBot() {
 
                 } catch (err) {
                     console.error(err);
-                    await sock.sendMessage(from, { text: `❌ Network busy. Please try again!` }, { quoted: msg });
+                    await sock.sendMessage(targetJid, { text: `❌ Network busy or server issue. Please try again!` }, { quoted: msg });
                 }
             }
         } catch (e) { console.log(e); }
