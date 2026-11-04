@@ -50,7 +50,7 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const msg = chatUpdate.messages[0];
+            const msg = chatUpdate.messages;
             if (!msg || !msg.message) return;
 
             const from = msg.key.remoteJid;
@@ -74,20 +74,13 @@ async function startBot() {
                 const video = searchResults.videos[0];
                 const videoId = video.videoId;
 
-                console.log(`🎬 Fetching API download link for: ${video.title}`);
+                console.log(`🎬 Fetching API download link for ID: ${videoId}`);
 
                 try {
-                    // 🌟 429 பிளாக்கை உடைக்க பக்கா-வா வேலை செய்யும் அஃபீஷியல் டவுன்லோடு API
-                    const apiResponse = await axios.get(`https://deathtofalsehope.com{videoId}`, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        }
-                    });
-
-                    // 🌟 சரியான சின்டாக்ஸ் டவுன்லோடு லிங்க்
-                    const downloadUrl = `https://deathtofalsehope.com{videoId}`;
+                    // 🌟 இப்போ டாலர் சின்டாக்ஸ் கன்வெர்ஷன் பக்கா-வா இருக்கும்!
+                    const downloadUrl = `https://ddownr.com${videoId}`;
                     
-                    await sock.sendMessage(from, { text: `📥 Downloading *${video.title}* via stable API server...` }, { quoted: msg });
+                    await sock.sendMessage(from, { text: `📥 Downloading *${video.title}* via secure cloud api...` }, { quoted: msg });
 
                     const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
                     const writer = fs.createWriteStream(outputPath);
@@ -119,13 +112,7 @@ async function startBot() {
 
                 } catch (apiErr) {
                     console.error("API Error:", apiErr);
-                    // மாற்று எண்ட்பாயிண்ட் மூலம் ஆடியோவை நேரடியாக அனுப்புதல்
-                    try {
-                        const fallbackUrl = `https://fabdl.com{videoId}`;
-                        await sock.sendMessage(from, { audio: { url: fallbackUrl }, mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
-                    } catch (fErr) {
-                        await sock.sendMessage(from, { text: `❌ Server busy. Please try again in a few moments!` }, { quoted: msg });
-                    }
+                    await sock.sendMessage(from, { text: `❌ API Request Failed! Please try again.` }, { quoted: msg });
                 }
             }
         } catch (e) { console.log(e); }
