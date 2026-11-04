@@ -3,11 +3,11 @@ import qrcode from 'qrcode-terminal';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
-import axios from 'axios';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const ytSearch = require('yt-search');
+const SoundCloud = require('soundcloud-scraper');
+const client = new SoundCloud.Client();
 const express = require('express');
 
 const app = express();
@@ -15,7 +15,7 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-// 🌟 உங்க வாட்ஸ்அப் போன் நம்பர்
+// 🌟 Unga WA Phone number
 const phoneNumber = "919894027502"; 
 
 async function startBot() {
@@ -42,7 +42,7 @@ async function startBot() {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) startBot();
         } else if (connection === 'open') {
-            console.log('\n🎵 Bot is Successfully Connected to WhatsApp!');
+            console.log('\n🎵 SoundCloud Audio Bot Connected Successfully!');
         }
     });
 
@@ -63,59 +63,41 @@ async function startBot() {
                     return;
                 }
 
-                await sock.sendMessage(from, { text: `🔍 Searching for *${query}*...` }, { quoted: msg });
+                await sock.sendMessage(from, { text: `🔍 Searching on SoundCloud for *${query}*...` }, { quoted: msg });
 
-                const searchResults = await ytSearch(query + " official audio");
-                if (!searchResults.videos.length) {
-                    await sock.sendMessage(from, { text: '❌ Not found!' }, { quoted: msg });
+                // 🌟 YouTube-ai bypass panni SoundCloud platform search panrom
+                const searchResults = await client.search(query, 'track');
+                if (!searchResults || searchResults.length === 0) {
+                    await sock.sendMessage(from, { text: '❌ Audio track not found on cloud networks!' }, { quoted: msg });
                     return;
                 }
 
-                const video = searchResults.videos[0];
-                const videoId = video.videoId;
+                const track = searchResults[0];
+                await sock.sendMessage(from, { text: `📥 Streaming audio: *${track.title}* via SoundCloud server...` }, { quoted: msg });
 
-                console.log(`🎬 Fetching via vkrdown API for ID: ${videoId}`);
-                await sock.sendMessage(from, { text: `📥 Downloading *${video.title}* via secure API server...` }, { quoted: msg });
+                const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
+                
+                const stream = await track.downloadProgressive();
+                const fileStream = fs.createWriteStream(outputPath);
+                
+                stream.pipe(fileStream);
 
-                try {
-                    // 🌟 Render 429 பிளாக்கை உடைக்க அஃபீஷியல் டவுன்லோடு சர்வர் API லிங்க்
-                    const downloadUrl = "https://vkrdown.com" + videoId;
-                    
-                    const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
-                    const writer = fs.createWriteStream(outputPath);
+                fileStream.on('finish', async () => {
+                    if (fs.existsSync(outputPath)) {
+                        await sock.sendMessage(from, {
+                            audio: { url: outputPath },
+                            mimetype: 'audio/mp4',
+                            ptt: true
+                        }, { quoted: msg });
+                        fs.unlinkSync(outputPath);
+                        console.log("✅ SoundCloud track pushed to WA chat!");
+                    }
+                });
 
-                    const fileDownload = await axios({
-                        url: downloadUrl,
-                        method: 'GET',
-                        responseType: 'stream',
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        }
-                    });
-
-                    fileDownload.data.pipe(writer);
-
-                    writer.on('finish', async () => {
-                        if (fs.existsSync(outputPath)) {
-                            await sock.sendMessage(from, {
-                                audio: { url: outputPath },
-                                mimetype: 'audio/mp4',
-                                ptt: true
-                            }, { quoted: msg });
-                            fs.unlinkSync(outputPath);
-                            console.log("✅ Audio voice note sent successfully!");
-                        }
-                    });
-
-                    writer.on('error', async (err) => {
-                        console.error("Writer error:", err);
-                        await sock.sendMessage(from, { text: `❌ File Save Error: ${err.message}` }, { quoted: msg });
-                    });
-
-                } catch (apiErr) {
-                    console.error("API Error:", apiErr);
-                    await sock.sendMessage(from, { text: `❌ API Server Busy! Please try again.` }, { quoted: msg });
-                }
+                stream.on('error', async (err) => {
+                    console.error("Cloud stream error:", err);
+                    await sock.sendMessage(from, { text: `❌ Stream error: ${err.message}` }, { quoted: msg });
+                });
             }
         } catch (e) { console.log(e); }
     });
