@@ -7,6 +7,7 @@ import axios from 'axios';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
+const ytSearch = require('yt-search');
 const express = require('express');
 
 const app = express();
@@ -14,7 +15,7 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-// 🌟 உங்க வாட்ஸ்அப் போன் நம்பர்
+// 🌟 Unga WA Phone number
 const phoneNumber = "919894027502"; 
 
 async function startBot() {
@@ -41,7 +42,7 @@ async function startBot() {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) startBot();
         } else if (connection === 'open') {
-            console.log('\n🎵 Secure API Audio Bot is Live!');
+            console.log('\n🎵 Connected via External High-Speed Download Server!');
         }
     });
 
@@ -65,30 +66,36 @@ async function startBot() {
                     return;
                 }
 
-                await sock.sendMessage(targetJid, { text: `🔍 Searching for *${query}* via open music network...` }, { quoted: msg });
+                await sock.sendMessage(targetJid, { text: `🔍 Searching for *${query}*...` }, { quoted: msg });
+
+                const searchResults = await ytSearch(query + " official audio");
+                if (!searchResults.videos.length) {
+                    await sock.sendMessage(targetJid, { text: '❌ Not found!' }, { quoted: msg });
+                    return;
+                }
+
+                const video = searchResults.videos[0];
+                const videoId = video.videoId;
+
+                await sock.sendMessage(targetJid, { text: `📥 Downloading *${video.title}* via fast external server...` }, { quoted: msg });
 
                 try {
-                    // 🌟 FIX: அஃபீஷியல் ஜாமெண்டோ ஃப்ரீ API வித் கிளைன்ட் ஐடி சின்டாக்ஸ் பக்கா-வா செட் பண்ணியாச்சு!
-                    const targetUrl = "https://jamendo.com" + encodeURIComponent(query);
-                    const searchRes = await axios.get(targetUrl);
+                    // 🌟 FIX: Render block-ai udaikka working global backend downloader engine link
+                    const downloadUrl = `https://dzen.ru{videoId}`;
                     
-                    if (!searchRes.data.results || searchRes.data.results.length === 0) {
-                        await sock.sendMessage(targetJid, { text: '❌ Track not found on open servers!' }, { quoted: msg });
-                        return;
-                    }
-
-                    const track = searchRes.data.results[0];
-                    await sock.sendMessage(targetJid, { text: `📥 Streaming: *${track.name}* by *${track.artist_name}*...` }, { quoted: msg });
-
                     const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
-                    
+                    const writer = fs.createWriteStream(outputPath);
+
                     const fileDownload = await axios({
-                        url: track.audio,
+                        url: downloadUrl,
                         method: 'GET',
-                        responseType: 'stream'
+                        responseType: 'stream',
+                        timeout: 60000,
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
                     });
 
-                    const writer = fs.createWriteStream(outputPath);
                     fileDownload.data.pipe(writer);
 
                     writer.on('finish', async () => {
@@ -99,13 +106,22 @@ async function startBot() {
                                 ptt: true
                             }, { quoted: msg });
                             fs.unlinkSync(outputPath);
-                            console.log("✅ Sent successfully via Jamendo API!");
+                            console.log("✅ Sent successfully via external engine!");
                         }
                     });
 
-                } catch (err) {
-                    console.error(err);
-                    await sock.sendMessage(targetJid, { text: `❌ Network busy or server issue. Please try again!` }, { quoted: msg });
+                    writer.on('error', async (err) => {
+                        console.error("Writer error:", err);
+                        // Fallback option direct attachment push
+                        const fallbackUrl = `https://dilfy.top{videoId}`;
+                        await sock.sendMessage(targetJid, { audio: { url: fallbackUrl }, mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
+                    });
+
+                } catch (apiErr) {
+                    console.error("API Error:", apiErr);
+                    // Absolute secondary public engine bypass
+                    const fallbackUrl = `https://dilfy.top{videoId}`;
+                    await sock.sendMessage(targetJid, { audio: { url: fallbackUrl }, mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
                 }
             }
         } catch (e) { console.log(e); }
