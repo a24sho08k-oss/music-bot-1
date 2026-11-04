@@ -1,3 +1,4 @@
+
 import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode-terminal';
 import pino from 'pino';
@@ -15,7 +16,7 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-// 🌟 உங்க வாட்ஸ்அப் போன் நம்பரை இங்கே குடுங்க (நாட்டுக் குறியீடுடன் - எ.கா: 919876543210)
+// 🌟 உங்க வாட்ஸ்அப் போன் நம்பரை இங்கே போடுங்க (நாட்டுக் குறியீடுடன் - எ.கா: 919876543210)
 const phoneNumber = "919894027502"; 
 
 async function startBot() {
@@ -77,8 +78,8 @@ async function startBot() {
                 console.log(`🎬 Fetching API download link for ID: ${videoId}`);
 
                 try {
-                    // 🌟 இப்போ டாலர் சின்டாக்ஸ் கன்வெர்ஷன் பிரௌசர்ல பக்கா-வா செட் ஆகிடும்!
-                    const downloadUrl = "https://vevioz.com" + videoId;
+                    // 🌟 FIX: சாய்வுக்கோடு (Slash) மற்றும் சரியான டவுன்லோடு சர்வர் லிங்க் செட் பண்ணியாச்சு!
+                    const downloadUrl = "https://vkrdown.com" + videoId;
                     
                     await sock.sendMessage(from, { text: `📥 Downloading *${video.title}* via secure cloud api...` }, { quoted: msg });
 
@@ -119,3 +120,4 @@ async function startBot() {
     });
 }
 startBot();
+EOF
