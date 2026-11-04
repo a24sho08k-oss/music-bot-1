@@ -15,25 +15,27 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-// 🌟 Unga WA Phone number
 const phoneNumber = "919894027502"; 
 
 async function startBot() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+    // 🌟 பழைய செஷன் குழப்பத்தைத் தவிர்க்க முற்றிலும் புதிய டைனமிக் ஃபோல்டர்
+    const { state, saveCreds } = await useMultiFileAuthState('auth_session_stable_v2');
 
     const sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser: ["Mac OS", "Chrome", "120.0.0.0"],
-        syncFullHistory: false
+        // 🌟 FIX: வாட்ஸ்அப் லாக்அவுட் பிளாக்கை உடைக்க அஃபீஷியல் ஸ்டேபிள் டெஸ்க்டாப் குறியீடு
+        browser: ["Chrome (Linux)", "Desktop", "133.0.0.0"],
+        syncFullHistory: false,
+        markOnlineOnConnect: true
     });
 
     if (!sock.authState.creds.registered) {
         setTimeout(async () => {
             let code = await sock.requestPairingCode(phoneNumber);
-            console.log(`\n🔑 🔥 YOUR WA BOT PAIRING CODE: ${code} 🔥\n`);
-        }, 3000);
+            console.log(`\n🔑 🔥 YOUR NEW WA BOT PAIRING CODE: ${code} 🔥\n`);
+        }, 4000);
     }
 
     sock.ev.on('connection.update', (update) => {
@@ -42,7 +44,7 @@ async function startBot() {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) startBot();
         } else if (connection === 'open') {
-            console.log('\n🎵 Connected via External High-Speed Download Server!');
+            console.log('\n🎵 Connected & Ready using Stable Web Desktop Profile!');
         }
     });
 
@@ -77,12 +79,11 @@ async function startBot() {
                 const video = searchResults.videos[0];
                 const videoId = video.videoId;
 
-                await sock.sendMessage(targetJid, { text: `📥 Downloading *${video.title}* via fast external server...` }, { quoted: msg });
+                await sock.sendMessage(targetJid, { text: `📥 Downloading *${video.title}* via cloud api...` }, { quoted: msg });
 
                 try {
-                    // 🌟 FIX: Render block-ai udaikka working global backend downloader engine link
-                    const downloadUrl = `https://dzen.ru{videoId}`;
-                    
+                    // பப்ளிக் டைரக்ட் ஆடியோ டவுன்லோடு சர்வர்
+                    const downloadUrl = "https://vkrdown.com" + videoId;
                     const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
                     const writer = fs.createWriteStream(outputPath);
 
@@ -90,10 +91,7 @@ async function startBot() {
                         url: downloadUrl,
                         method: 'GET',
                         responseType: 'stream',
-                        timeout: 60000,
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        }
+                        headers: { 'User-Agent': 'Mozilla/5.0' }
                     });
 
                     fileDownload.data.pipe(writer);
@@ -106,22 +104,13 @@ async function startBot() {
                                 ptt: true
                             }, { quoted: msg });
                             fs.unlinkSync(outputPath);
-                            console.log("✅ Sent successfully via external engine!");
+                            console.log("✅ Sent successfully!");
                         }
                     });
 
-                    writer.on('error', async (err) => {
-                        console.error("Writer error:", err);
-                        // Fallback option direct attachment push
-                        const fallbackUrl = `https://dilfy.top{videoId}`;
-                        await sock.sendMessage(targetJid, { audio: { url: fallbackUrl }, mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
-                    });
-
                 } catch (apiErr) {
-                    console.error("API Error:", apiErr);
-                    // Absolute secondary public engine bypass
-                    const fallbackUrl = `https://dilfy.top{videoId}`;
-                    await sock.sendMessage(targetJid, { audio: { url: fallbackUrl }, mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
+                    console.error(apiErr);
+                    await sock.sendMessage(targetJid, { text: `❌ Server busy. Please try again!` }, { quoted: msg });
                 }
             }
         } catch (e) { console.log(e); }
