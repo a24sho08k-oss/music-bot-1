@@ -15,8 +15,8 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-// 🌟 உங்க வாட்ஸ்அப் போன் நம்பரை இங்கே குடுங்க (நாட்டுக் குறியீடுடன்)
-const phoneNumber = "91XXXXXXXXXX"; 
+// 🌟 Unga WA Phone number kudunga
+const phoneNumber = "919894027502";
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -25,7 +25,9 @@ async function startBot() {
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser: ["Ubuntu", "Chrome", "20.0.0"]
+        // 🌟 FIX: 428 Precondition Required error-ai fix panna intha secure stable connection model
+        browser: ["Mac OS", "Chrome", "120.0.0.0"],
+        syncFullHistory: false
     });
 
     if (!sock.authState.creds.registered) {
@@ -73,7 +75,6 @@ async function startBot() {
                 const video = searchResults.videos[0];
                 const outputPath = path.join(process.cwd(), `audio_${Date.now()}.opus`);
                 
-                // 🌟 டவுன்லோட் கமாண்ட்
                 const cmd = `yt-dlp --extract-audio --audio-format opus --no-playlist --output "${outputPath}" "${video.url}"`;
 
                 console.log(`🎬 Triggering yt-dlp for: ${video.title}`);
@@ -81,8 +82,7 @@ async function startBot() {
                 exec(cmd, async (error, stdout, stderr) => {
                     if (error) {
                         console.error("❌ Download Fail Error:", error);
-                        // 🌟 எர்ரர் வந்தால் அதை அப்படியே வாட்ஸ்அப் சாட்டில் மெசேஜாக அனுப்பும் செட்டிங்
-                        await sock.sendMessage(from, { text: `❌ Download Failed!\n\n*Error:* ${error.message}\n\n*Stderr:* ${stderr}` }, { quoted: msg });
+                        await sock.sendMessage(from, { text: `❌ Download Failed!\n\n*Error:* ${error.message}` }, { quoted: msg });
                         return;
                     }
 
@@ -95,7 +95,7 @@ async function startBot() {
                         fs.unlinkSync(outputPath);
                         console.log("✅ Audio voice note sent!");
                     } else {
-                        await sock.sendMessage(from, { text: `❌ File not found after download process completed.` }, { quoted: msg });
+                        await sock.sendMessage(from, { text: `❌ File error.` }, { quoted: msg });
                     }
                 });
             }
