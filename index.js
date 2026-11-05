@@ -11,16 +11,15 @@ const ytSearch = require('yt-search');
 const express = require('express');
 
 const app = express();
-const port = process.env.PORT || 3000;
+// 🌟 SnapDeploy-க்கு தேவையான போர்ட் பிக்ஸ்!
+const port = process.env.PORT || 8080;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
-app.listen(port, () => console.log(`Web server listening on port ${port}`));
+app.listen(port, "0.0.0.0", () => console.log(`Web server listening on port ${port}`));
 
-// 🌟 Unga targetted secondary WhatsApp profile number
 const phoneNumber = "919894027502"; 
 
 async function startBot() {
-    // 🌟 Absolute fresh initialization structure setup
-    const { state, saveCreds } = await useMultiFileAuthState('auth_session_yt_stable_v1');
+    const { state, saveCreds } = await useMultiFileAuthState('auth_session_snap_v1');
 
     const sock = makeWASocket({
         auth: state,
@@ -44,7 +43,7 @@ async function startBot() {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) startBot();
         } else if (connection === 'open') {
-            console.log('\n🎵 Secure Dynamic Node Bot is successfully connected!');
+            console.log('\n🎵 Secure Dynamic Node Bot Connected!');
         }
     });
 
@@ -52,12 +51,12 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const msg = chatUpdate.messages[0];
+            const msg = chatUpdate.messages;
             if (!msg || !msg.message) return;
 
             const from = msg.key.remoteJid;
             const isSelf = msg.key.fromMe;
-            const targetJid = isSelf ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : from;
+            const targetJid = isSelf ? sock.user.id.split(':') + '@s.whatsapp.net' : from;
 
             const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
 
@@ -72,26 +71,21 @@ async function startBot() {
 
                 const searchResults = await ytSearch(query + " official audio");
                 if (!searchResults.videos.length) {
-                    await sock.sendMessage(targetJid, { text: '❌ Audio query structural mismatch!' }, { quoted: msg });
+                    await sock.sendMessage(targetJid, { text: '❌ Audio query error!' }, { quoted: msg });
                     return;
                 }
 
-                const video = searchResults.videos[0];
+                const video = searchResults.videos;
                 const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
 
-                await sock.sendMessage(targetJid, { text: `📥 Fetching and extracting audio matrix for *${video.title}*...` }, { quoted: msg });
+                await sock.sendMessage(targetJid, { text: `📥 Fetching audio for *${video.title}*...` }, { quoted: msg });
 
-                // 🌟 FIX: Online APIs use pannama, server kula run aagura local yt-dlp layer bypass
+                // Pure local execution using system level elements inside docker
                 const cmd = `npx -y yt-dlp --extract-audio --audio-format mp3 --no-playlist --no-cache-dir --geo-bypass --output "${outputPath}" "${video.url}"`;
 
-                console.log(`🎬 Dynamic Local Processing trigger for URL: ${video.url}`);
-
-                exec(cmd, async (error, stdout, stderr) => {
+                exec(cmd, async (error) => {
                     if (error) {
-                        console.error("Internal Engine Error:", error);
-                        // Security parameters context tracking fallback method integration
-                        const fallbackUrl = `https://vkrdown.com{video.url}`;
-                        await sock.sendMessage(targetJid, { audio: { url: fallbackUrl }, mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
+                        console.error(error);
                         return;
                     }
 
@@ -102,10 +96,6 @@ async function startBot() {
                             ptt: true
                         }, { quoted: msg });
                         fs.unlinkSync(outputPath);
-                        console.log("✅ File streamed out perfectly from Local Machine container!");
-                    } else {
-                        const fallbackUrl = `https://vkrdown.com{video.url}`;
-                        await sock.sendMessage(targetJid, { audio: { url: fallbackUrl }, mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
                     }
                 });
             }
