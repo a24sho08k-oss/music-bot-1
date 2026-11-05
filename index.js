@@ -50,14 +50,12 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const msg = chatUpdate.messages[0];
+            const msg = chatUpdate.messages;
             if (!msg || !msg.message) return;
 
             const from = msg.key.remoteJid;
-            
-            // 🌟 FIX: சொந்த நம்பர் சாட்டாக இருந்தால், மெசேஜை அதே ஓன் சாட்டிற்கு திருப்பி அனுப்பும் லாஜிக்
             const isSelf = msg.key.fromMe;
-            const targetJid = isSelf ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : from;
+            const targetJid = isSelf ? sock.user.id.split(':') + '@s.whatsapp.net' : from;
 
             const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
 
@@ -76,12 +74,13 @@ async function startBot() {
                     return;
                 }
 
-                const video = searchResults.videos[0];
+                const video = searchResults.videos;
                 const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
 
                 await sock.sendMessage(targetJid, { text: `📥 Fetching audio for *${video.title}*...` }, { quoted: msg });
 
-                const cmd = `npx -y yt-dlp --extract-audio --audio-format mp3 --no-playlist --no-cache-dir --geo-bypass --output "${outputPath}" "${video.url}"`;
+                // 🌟 FIX: npx-ஐ நீக்கிவிட்டு நேரடியாக குளோபல் yt-dlp கமாண்டாக மாற்றியுள்ளோம்
+                const cmd = `yt-dlp --extract-audio --audio-format mp3 --no-playlist --no-cache-dir --geo-bypass --output "${outputPath}" "${video.url}"`;
 
                 exec(cmd, async (error) => {
                     if (error) {
