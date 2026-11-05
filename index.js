@@ -11,7 +11,6 @@ const ytSearch = require('yt-search');
 const express = require('express');
 
 const app = express();
-// 🌟 SnapDeploy-க்கு தேவையான போர்ட் பிக்ஸ்!
 const port = process.env.PORT || 8080;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, "0.0.0.0", () => console.log(`Web server listening on port ${port}`));
@@ -51,12 +50,14 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const msg = chatUpdate.messages;
+            const msg = chatUpdate.messages[0];
             if (!msg || !msg.message) return;
 
             const from = msg.key.remoteJid;
+            
+            // 🌟 FIX: சொந்த நம்பர் சாட்டாக இருந்தால், மெசேஜை அதே ஓன் சாட்டிற்கு திருப்பி அனுப்பும் லாஜிக்
             const isSelf = msg.key.fromMe;
-            const targetJid = isSelf ? sock.user.id.split(':') + '@s.whatsapp.net' : from;
+            const targetJid = isSelf ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : from;
 
             const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
 
@@ -75,12 +76,11 @@ async function startBot() {
                     return;
                 }
 
-                const video = searchResults.videos;
+                const video = searchResults.videos[0];
                 const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
 
                 await sock.sendMessage(targetJid, { text: `📥 Fetching audio for *${video.title}*...` }, { quoted: msg });
 
-                // Pure local execution using system level elements inside docker
                 const cmd = `npx -y yt-dlp --extract-audio --audio-format mp3 --no-playlist --no-cache-dir --geo-bypass --output "${outputPath}" "${video.url}"`;
 
                 exec(cmd, async (error) => {
