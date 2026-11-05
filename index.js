@@ -15,18 +15,19 @@ const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Alive!'));
 app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
+// 🌟 உங்க வாட்ஸ்அப் போன் நம்பர் (மாற்றங்கள் செய்யப்பட்டுள்ளது)
 const phoneNumber = "919894027502"; 
 
 async function startBot() {
-    // 🌟 பழைய செஷன் குழப்பத்தைத் தவிர்க்க முற்றிலும் புதிய டைனமிக் ஃபோல்டர்
-    const { state, saveCreds } = await useMultiFileAuthState('auth_session_stable_v2');
+    // 🌟 FIX: பழைய லாக்ஆவுட் எர்ரர் மெமரியை உடைக்க முற்றிலும் புதிய பிரெஷ்ஷான செஷன் ஃபோல்டர்!
+    const { state, saveCreds } = await useMultiFileAuthState('auth_session_fresh_v9');
 
     const sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        // 🌟 FIX: வாட்ஸ்அப் லாக்அவுட் பிளாக்கை உடைக்க அஃபீஷியல் ஸ்டேபிள் டெஸ்க்டாப் குறியீடு
-        browser: ["Chrome (Linux)", "Desktop", "133.0.0.0"],
+        // 🌟 அஃபீஷியல் ஸ்டேபிள் டெஸ்க்டாப் ப்ரொஃபைல் பிங்கர் பிரிண்ட்
+        browser: ["Ubuntu", "Chrome", "133.0.0.0"],
         syncFullHistory: false,
         markOnlineOnConnect: true
     });
@@ -34,7 +35,7 @@ async function startBot() {
     if (!sock.authState.creds.registered) {
         setTimeout(async () => {
             let code = await sock.requestPairingCode(phoneNumber);
-            console.log(`\n🔑 🔥 YOUR NEW WA BOT PAIRING CODE: ${code} 🔥\n`);
+            console.log(`\n🔑 🔥 YOUR FRESH NEW PAIRING CODE: ${code} 🔥\n`);
         }, 4000);
     }
 
@@ -44,7 +45,7 @@ async function startBot() {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) startBot();
         } else if (connection === 'open') {
-            console.log('\n🎵 Connected & Ready using Stable Web Desktop Profile!');
+            console.log('\n🎵 Connected successfully using fresh secure session matrix!');
         }
     });
 
@@ -82,7 +83,6 @@ async function startBot() {
                 await sock.sendMessage(targetJid, { text: `📥 Downloading *${video.title}* via cloud api...` }, { quoted: msg });
 
                 try {
-                    // பப்ளிக் டைரக்ட் ஆடியோ டவுன்லோடு சர்வர்
                     const downloadUrl = "https://vkrdown.com" + videoId;
                     const outputPath = path.join(process.cwd(), `audio_${Date.now()}.mp3`);
                     const writer = fs.createWriteStream(outputPath);
